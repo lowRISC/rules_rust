@@ -554,17 +554,19 @@ def load_arbitrary_tool(ctx, tool_name, tool_subdirectories, version, iso_date, 
     tool_path = produce_tool_path(tool_name, target_triple, version)
 
     archive_path = tool_path + _get_tool_extension(ctx)
-    ctx.download(
+    ctx.download_and_extract(
         urls,
-        output = archive_path,
+        output = "",
         sha256 = getattr(ctx.attr, "sha256s", dict()).get(archive_path) or
                  FILE_KEY_TO_SHA.get(archive_path) or
                  sha256,
         auth = _make_auth_dict(ctx, urls),
     )
+    compressed_tool_path = tool_path + ".tar.gz"
+    ctx.execute(["tar", "-czvf", compressed_tool_path, tool_path])
     for subdirectory in tool_subdirectories:
         ctx.extract(
-            archive_path,
+            compressed_tool_path,
             output = "",
             stripPrefix = "{}/{}".format(tool_path, subdirectory),
         )
