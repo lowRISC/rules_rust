@@ -30,6 +30,10 @@ rust_bindgen_toolchain(
         "//rust/platform:osx": "@bindgen_clang_osx//:clang",
         "//conditions:default": "@bindgen_clang_linux//:clang",
     }),
+    clang_system_includes = select({
+        "//rust/platform:osx": "@bindgen_clang_osx//:clang_system_includes",
+        "//conditions:default": "@bindgen_clang_linux//:clang_system_includes",
+    }),
     libclang = select({
         "//rust/platform:osx": "@bindgen_clang_osx//:libclang",
         "//conditions:default": "@bindgen_clang_linux//:libclang",
