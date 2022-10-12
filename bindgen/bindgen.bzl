@@ -96,6 +96,7 @@ def _rust_bindgen_impl(ctx):
     bindgen_bin = toolchain.bindgen
     rustfmt_bin = toolchain.rustfmt or rust_toolchain.rustfmt
     clang_bin = toolchain.clang
+    clang_system_includes = toolchain.clang_system_includes
     libclang = toolchain.libclang
     libstdcxx = toolchain.libstdcxx
 
@@ -110,6 +111,7 @@ def _rust_bindgen_impl(ctx):
     include_directories = cc_lib[CcInfo].compilation_context.includes.to_list()
     quote_include_directories = cc_lib[CcInfo].compilation_context.quote_includes.to_list()
     system_include_directories = cc_lib[CcInfo].compilation_context.system_includes.to_list()
+    dirafter_include_directories = [clang_system_includes.files.to_list()[0].dirname]
 
     # Vanilla usage of bindgen produces formatted output, here we do the same if we have `rustfmt` in our toolchain.
     if ctx.attr.rustfmt and rustfmt_bin:
@@ -125,6 +127,7 @@ def _rust_bindgen_impl(ctx):
     args.add_all(include_directories, before_each = "-I")
     args.add_all(quote_include_directories, before_each = "-iquote")
     args.add_all(system_include_directories, before_each = "-isystem")
+    args.add_all(dirafter_include_directories, before_each = "-idirafter")
     args.add_all(clang_args)
 
     env = {
@@ -133,6 +136,7 @@ def _rust_bindgen_impl(ctx):
         "RUST_BACKTRACE": "1",
     }
     cc_toolchain, feature_configuration = find_cc_toolchain(ctx)
+
     _, _, linker_env = get_linker_and_args(ctx, ctx.attr, cc_toolchain, feature_configuration, None)
     env.update(**linker_env)
 
@@ -158,7 +162,7 @@ def _rust_bindgen_impl(ctx):
         progress_message = "Generating bindings for {}..".format(header.path),
         env = env,
         arguments = [args],
-        tools = [clang_bin],
+        tools = [clang_bin] + clang_system_includes.files.to_list(),
     )
 
     if ctx.attr.rustfmt and rustfmt_bin:
@@ -225,6 +229,7 @@ def _rust_bindgen_toolchain_impl(ctx):
     return platform_common.ToolchainInfo(
         bindgen = ctx.executable.bindgen,
         clang = ctx.executable.clang,
+        clang_system_includes = ctx.attr.clang_system_includes,
         libclang = ctx.attr.libclang,
         libstdcxx = ctx.attr.libstdcxx,
         rustfmt = ctx.executable.rustfmt,
@@ -270,6 +275,11 @@ For additional information, see the [Bazel toolchains documentation](https://doc
             doc = "The label of a `clang` executable.",
             executable = True,
             cfg = "exec",
+        ),
+        "clang_system_includes": attr.label(
+            doc = "Clang system includes.",
+            providers = ["files"],
+            mandatory = True,
         ),
         "libclang": attr.label(
             doc = "A cc_library that provides bindgen's runtime dependency on libclang.",
