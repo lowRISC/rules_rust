@@ -23,6 +23,11 @@ bzl_library(
     ],
 )
 
+config_setting(
+    name = "specify_bindgen_libstdcxx",
+    values = {"define": "SPECIFY_BINDGEN_LIBSTDCXX=true"},
+)
+
 rust_bindgen_toolchain(
     name = "default_bindgen_toolchain_impl",
     bindgen = "//bindgen/3rdparty:bindgen",
@@ -40,6 +45,7 @@ rust_bindgen_toolchain(
     }),
     libstdcxx = select({
         "//rust/platform:osx": "@bindgen_clang_osx//:libc++",
+        ":specify_bindgen_libstdcxx": "@bindgen_libstdcxx_linux//:libstdc++",
         "//conditions:default": None,
     }),
 )

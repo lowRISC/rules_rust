@@ -25,6 +25,8 @@ def rust_bindgen_dependencies():
     # nb. The bindgen rule itself should work on any platform.
     _bindgen_clang_repositories()
 
+    rust_bindgen_libstdcxx(name = "bindgen_libstdcxx_linux")
+
     crate_repositories()
 
 # buildifier: disable=unnamed-macro
@@ -117,3 +119,26 @@ def _bindgen_clang_repositories():
         ),
         workspace_file_content = _COMMON_WORKSPACE.format("bindgen_clang_osx"),
     )
+
+_LIBSTDCXX_BUILD_FILE = """\
+load("@rules_cc//cc:defs.bzl", "cc_import")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_import(
+    name = "libstdc++",
+    shared_library = "lib64/libstdc++.so.6"
+)
+"""
+
+def _rust_bindgen_libstdcxx_impl(rctx):
+    libstdcxx_path = rctx.os.environ.get("RULES_RUST_BINDGEN_LIBSTDCXX_DIR")
+    if libstdcxx_path:
+        rctx.file("BUILD.bazel", _LIBSTDCXX_BUILD_FILE)
+        rctx.file("WORKSPACE", _COMMON_WORKSPACE.format(rctx.attr.name))
+        rctx.symlink(libstdcxx_path, "lib64")
+
+rust_bindgen_libstdcxx = repository_rule(
+    implementation = _rust_bindgen_libstdcxx_impl,
+    environ = ["RULES_RUST_BINDGEN_LIBSTDCXX_DIR"],
+)
