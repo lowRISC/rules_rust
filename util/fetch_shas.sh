@@ -51,6 +51,11 @@ function enumerate_keys() {
     do
       echo "$HOST_TOOL-$VERSION"
     done
+
+    for ISO_DATE in $NIGHTLY_ISO_DATES
+    do
+      echo "$ISO_DATE/$HOST_TOOL-nightly"
+    done
   done
 }
 

@@ -436,7 +436,7 @@ def load_rust_src(ctx, sha256 = ""):
     url = ctx.attr.urls[0].format(tool_suburl)
 
     tool_path = produce_tool_path("rust-src", None, ctx.attr.version)
-    archive_path = tool_path + _get_tool_extension(ctx)
+    archive_path = tool_suburl + _get_tool_extension(ctx)
     sha256 = sha256 or getattr(ctx.attr, "sha256s", {}).get(archive_path) or FILE_KEY_TO_SHA.get(archive_path) or ""
     ctx.download_and_extract(
         url,
