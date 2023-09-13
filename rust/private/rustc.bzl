@@ -71,6 +71,11 @@ PerCrateRustcFlagsInfo = provider(
     fields = {"per_crate_rustc_flags": "List[string] Extra flags to pass to rustc in non-exec configuration"},
 )
 
+ExtraRustcToolchainDirsInfo = provider(
+    doc = "Pass each value as an additional `-B` flag to rustc invocations. Enables use of linkers placed in different directories on the system.",
+    fields = {"extra_rustc_toolchain_dirs": "List[string] Extra `-B` flags to pass to rustc."},
+)
+
 IsProcMacroDepInfo = provider(
     doc = "Records if this is a transitive dependency of a proc-macro.",
     fields = {"is_proc_macro_dep": "Boolean"},
@@ -447,6 +452,10 @@ def get_linker_and_args(ctx, attr, crate_type, cc_toolchain, feature_configurati
         action_name = action_name,
         variables = link_variables,
     )
+
+    # Make sure linker is locateable.
+    if hasattr(ctx.attr, "_extra_rustc_toolchain_dirs"):
+        link_args = link_args + ctx.attr._extra_rustc_toolchain_dirs[ExtraRustcToolchainDirsInfo].extra_rustc_toolchain_dirs
     link_env = cc_common.get_environment_variables(
         feature_configuration = feature_configuration,
         action_name = action_name,
@@ -2109,6 +2118,19 @@ per_crate_rustc_flag = rule(
         "Multiple uses are accumulated."
     ),
     implementation = _per_crate_rustc_flag_impl,
+    build_setting = config.string(flag = True, allow_multiple = True),
+)
+
+def _extra_rustc_toolchain_dirs_impl(ctx):
+    return ExtraRustcToolchainDirsInfo(extra_rustc_toolchain_dirs = ["-B" + f for f in ctx.build_setting_value if f != ""])
+
+extra_rustc_toolchain_dirs = rule(
+    doc = (
+        "Add additional `-B` rustc toolchain flags to specificy where CC toolchain executables are located on the system by" +
+        "using the command line switch `--@rules_rust//:extra_rustc_toolchain_dirs`. " +
+        "Multiple uses are accumulated."
+    ),
+    implementation = _extra_rustc_toolchain_dirs_impl,
     build_setting = config.string(flag = True, allow_multiple = True),
 )
 
