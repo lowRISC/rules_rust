@@ -719,6 +719,9 @@ _common_attrs = {
     "_extra_rustc_flags": attr.label(
         default = Label("//:extra_rustc_flags"),
     ),
+    "_extra_rustc_toolchain_dirs": attr.label(
+        default = Label("//:extra_rustc_toolchain_dirs"),
+    ),
     "_import_macro_dep": attr.label(
         default = Label("//util/import"),
         cfg = "exec",

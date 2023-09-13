@@ -9,6 +9,7 @@ load(
     "extra_exec_rustc_flags",
     "extra_rustc_flag",
     "extra_rustc_flags",
+    "extra_rustc_toolchain_dirs",
     "is_proc_macro_dep",
     "is_proc_macro_dep_enabled",
     "no_std",
@@ -92,6 +93,15 @@ extra_exec_rustc_flag(
 
 per_crate_rustc_flag(
     name = "experimental_per_crate_rustc_flag",
+    build_setting_default = "",
+    visibility = ["//visibility:public"],
+)
+
+# This setting is to enable passing additional `-B` options to the CC toolchain driver binary to
+# aid in locating toolchain directories on systems where not all toolchain tools are installed in
+# the same system location.
+extra_rustc_toolchain_dirs(
+    name = "extra_rustc_toolchain_dirs",
     build_setting_default = "",
     visibility = ["//visibility:public"],
 )
