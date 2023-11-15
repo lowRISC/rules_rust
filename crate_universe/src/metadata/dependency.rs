@@ -697,4 +697,21 @@ mod test {
             .expect("Iterating over known keys should never panic")
             .any(|dep| { dep.target_name == "mio" }));
     }
+
+    #[test]
+    fn renamed_optional_deps_enabled() {
+        let metadata = metadata::renamed_optional_deps_enabled();
+
+        let p256 = find_metadata_node("p256", &metadata);
+        let p256_depset = DependencySet::new_for_node(p256, &metadata);
+        assert_eq!(
+            p256_depset
+                .normal_deps
+                .get_iter(None)
+                .expect("Iterating over known keys should never panic")
+                .filter(|dep| { dep.target_name == "ecdsa" })
+                .count(),
+            1
+        );
+    }
 }
