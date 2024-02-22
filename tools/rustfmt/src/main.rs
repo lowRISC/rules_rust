@@ -11,6 +11,20 @@ fn main() {
     // Gather all command line and environment settings
     let options = parse_args();
 
+    // Handle help.
+    if options.help {
+        println!("Format code using rustfmt. Note that this tool calls rustfmt but using different arguments.");
+        println!("If not bazel targets are provided, this tool will query all local rust files and format them.");
+        println!("");
+        println!("usage: rules_rust/tools/rustfmt [options] <bazel targets>...");
+        println!("");
+        println!("options:");
+        println!("  --help              Display this help message");
+        println!("  --check             Check files but do not modify them");
+        println!("  --skip-children     Use rustfmt 'skip-children' option");
+        return;
+    }
+
     // Gather a list of all formattable targets
     let targets = query_rustfmt_targets(&options);
 
@@ -139,6 +153,14 @@ fn apply_rustfmt(options: &Config, editions_and_targets: &HashMap<String, Vec<St
             .map(|target| target.replace(':', "/").trim_start_matches('/').to_owned())
             .collect();
 
+        let mut extra_args = Vec::new();
+        if options.check {
+            extra_args.push("--check");
+        }
+        if options.skip_children {
+            extra_args.push("--skip-children");
+            extra_args.push("--unstable-features");
+        }
         // Run rustfmt
         let status = Command::new(&options.rustfmt_config.rustfmt)
             .current_dir(&options.workspace)
@@ -146,6 +168,7 @@ fn apply_rustfmt(options: &Config, editions_and_targets: &HashMap<String, Vec<St
             .arg(edition)
             .arg("--config-path")
             .arg(&options.rustfmt_config.config)
+            .args(extra_args)
             .args(sources)
             .status()
             .expect("Failed to run rustfmt");
@@ -173,11 +196,41 @@ struct Config {
     /// to be formatted. If empty, all targets in the workspace will
     /// be formatted.
     pub packages: Vec<String>,
+
+    /// Print help and exit program.
+    pub help: bool,
+
+    /// Check files but do not modify them.
+    pub check: bool,
+
+    /// Use rustfmt 'skip_children' option.
+    pub skip_children: bool,
 }
 
 /// Parse command line arguments and environment variables to
 /// produce config data for running rustfmt.
 fn parse_args() -> Config {
+    // Collect arguments and do a minimal amount of parsing.
+    let args = env::args().skip(1).peekable();
+    let mut help = false;
+    let mut check = false;
+    let mut skip_children = false;
+    let args = args.skip_while(|arg| match arg.as_str() {
+        "--help" => {
+            help = true;
+            true
+        }
+        "--check" => {
+            check = true;
+            true
+        }
+        "--skip-children" => {
+            skip_children = true;
+            true
+        }
+        _ => false,
+    });
+
     Config{
         workspace: PathBuf::from(
             env::var("BUILD_WORKSPACE_DIRECTORY")
@@ -188,6 +241,9 @@ fn parse_args() -> Config {
             .unwrap_or_else(|_| "bazel".to_owned())
         ),
         rustfmt_config: rustfmt_lib::parse_rustfmt_config(),
-        packages: env::args().skip(1).collect(),
+        packages: args.collect(),
+        help,
+        check,
+        skip_children,
     }
 }
